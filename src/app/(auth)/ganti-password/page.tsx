@@ -1,11 +1,32 @@
+"use client";
+
+import { changePasswordAction } from "@/lib/actions/auth";
+import { useActionState } from "react";
+
 export default function GantiPasswordPage() {
+  const [state, formAction, isPending] = useActionState(
+    async (_prev: { error?: string } | null, formData: FormData) => {
+      const result = await changePasswordAction(formData);
+      if (!result.ok) return { error: result.error };
+      return null;
+    },
+    null
+  );
+
   return (
     <div className="bg-bg border border-line rounded-lg p-6">
       <h2 className="text-lg font-semibold text-ink mb-2">Ganti Password</h2>
       <p className="text-sm text-ink-2 mb-4">
         Anda wajib mengganti password sebelum menggunakan aplikasi.
       </p>
-      <form className="space-y-4">
+
+      {state?.error && (
+        <div className="mb-4 p-3 bg-danger-soft border border-danger/20 rounded-md text-sm text-danger" role="alert">
+          {state.error}
+        </div>
+      )}
+
+      <form action={formAction} className="space-y-4">
         <div>
           <label htmlFor="new-password" className="block text-sm font-medium text-ink mb-1.5">
             Password baru
@@ -17,7 +38,8 @@ export default function GantiPasswordPage() {
             autoComplete="new-password"
             required
             minLength={8}
-            className="flex h-11 w-full rounded-md border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus-visible:outline-none focus-visible:border-ink focus-visible:ring-1 focus-visible:ring-ink"
+            disabled={isPending}
+            className="flex h-11 w-full rounded-md border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus-visible:outline-none focus-visible:border-ink focus-visible:ring-1 focus-visible:ring-ink disabled:opacity-50"
           />
           <p className="mt-1 text-xs text-ink-3">Minimal 8 karakter, tidak boleh sama dengan NIM.</p>
         </div>
@@ -31,14 +53,16 @@ export default function GantiPasswordPage() {
             type="password"
             autoComplete="new-password"
             required
-            className="flex h-11 w-full rounded-md border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus-visible:outline-none focus-visible:border-ink focus-visible:ring-1 focus-visible:ring-ink"
+            disabled={isPending}
+            className="flex h-11 w-full rounded-md border border-line bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus-visible:outline-none focus-visible:border-ink focus-visible:ring-1 focus-visible:ring-ink disabled:opacity-50"
           />
         </div>
         <button
           type="submit"
-          className="w-full h-11 bg-accent text-on-accent font-semibold rounded-md hover:bg-accent-hover transition-colors"
+          disabled={isPending}
+          className="w-full h-11 bg-accent text-on-accent font-semibold rounded-md hover:bg-accent-hover transition-colors disabled:opacity-50"
         >
-          Simpan
+          {isPending ? "Menyimpan…" : "Simpan"}
         </button>
       </form>
     </div>
