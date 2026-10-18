@@ -1,0 +1,5 @@
+-- Seed data for development
+-- See docs/DATABASE_SCHEMA.md §9 for seed requirements:
+-- 1 Admin, 1 BPH, ±10 anggota, 2 non-HMIF
+-- 1 periode aktif, 2 proker contoh lengkap
+-- Will be populated in Fase 1

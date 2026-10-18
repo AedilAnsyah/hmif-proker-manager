@@ -1,26 +1,114 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --font-sans: var(--font-schibsted);
+  --font-mono: var(--font-jetbrains);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Netral */
+  --bg: #ffffff;
+  --surface: #f6f5f0;
+  --line: #e6e4dc;
+  --line-strong: #0a0a0a;
+  --ink: #0a0a0a;
+  --ink-2: #55534c;
+  --ink-3: #6f6c63;
+
+  /* Aksen */
+  --accent: #ffc800;
+  --accent-hover: #f0ba00;
+  --accent-soft: #fff3c0;
+  --on-accent: #0a0a0a;
+
+  /* Fungsional */
+  --danger: #c62f1b;
+  --danger-soft: #fce9e5;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Dark mode (Fase 6) */
+[data-theme="dark"] {
+  --bg: #0b0b0a;
+  --surface: #151513;
+  --line: #2a2925;
+  --line-strong: #f5f4ee;
+  --ink: #f5f4ee;
+  --ink-2: #bdbaaf;
+  --ink-3: #9a978c;
+  --accent: #ffc800;
+  --accent-hover: #ffd633;
+  --accent-soft: #2b2400;
+  --on-accent: #0a0a0a;
+  --danger: #ff6b57;
+  --danger-soft: #2e1511;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base styles */
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-schibsted), system-ui, sans-serif;
+  color: var(--ink);
+  background-color: var(--bg);
+  min-height: 100%;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] *:focus-visible {
+  outline-color: var(--accent);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-3);
 }

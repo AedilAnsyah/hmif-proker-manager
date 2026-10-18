@@ -1,0 +1,3 @@
+-- Migrations will be added here as the project progresses.
+-- See docs/DATABASE_SCHEMA.md for the full schema design.
+-- See docs/TASKS.md for the migration plan per phase.

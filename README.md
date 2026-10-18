@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HMIF Proker Manager
 
-## Getting Started
+> Web app manajemen program kerja (proker) untuk HMIF Telkom University Purwokerto.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router) + TypeScript
+- **Styling:** Tailwind CSS v4 + Custom Design Tokens
+- **Database:** Supabase (Postgres + RLS + Auth)
+- **Hosting:** Vercel Hobby (gratis)
+
+## Quickstart
 
 ```bash
+# Clone repo
+git clone https://github.com/AedilAnsyah/hmif-proker-manager.git
+cd hmif-proker-manager
+
+# Install dependencies
+npm install
+
+# Copy env dan isi kredensial Supabase
+cp .env.example .env.local
+
+# Jalankan development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struktur Folder
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (auth)/          # Login, ganti password
+│   ├── (app)/           # Dashboard, tugas, kalender, profil
+│   └── api/health/      # Health check endpoint
+├── components/
+│   ├── ui/              # Button, Input, Dialog, StatusChip, dll.
+│   └── layout/          # AppShell (sidebar + tab bar)
+├── lib/
+│   ├── supabase/        # Client, server, admin, middleware
+│   ├── format.ts        # Format tanggal, Rupiah
+│   └── utils.ts         # cn() helper
+docs/                    # PRD, Database Schema, Design System, dll.
+supabase/
+├── migrations/          # SQL migrations
+└── seed.sql             # Data development
+```
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Keterangan |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key (publik, dilindungi RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** — jangan expose ke client |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Dokumentasi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Lihat folder `docs/` untuk:
+- [PRD](docs/PRD.md) — Spesifikasi produk
+- [Database Schema](docs/DATABASE_SCHEMA.md) — Tabel & RLS
+- [Design System](docs/DESIGN.md) — Warna, tipografi, komponen
+- [Tech Stack](docs/TECH_STACK.md) — Arsitektur & konvensi
+- [Roles & Permissions](docs/ROLES_PERMISSIONS.md) — Matriks akses
+- [Tasks](docs/TASKS.md) — Roadmap pengerjaan
+- [User Flow](docs/USER_FLOW.md) — Alur pengguna
 
-## Deploy on Vercel
+## Lisensi
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Internal HMIF Telkom University Purwokerto.

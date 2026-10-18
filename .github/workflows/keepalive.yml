@@ -1,0 +1,20 @@
+name: Keepalive
+
+on:
+  schedule:
+    # Every day at 00:00 UTC (07:00 WIB) — prevents Supabase free tier from pausing
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.APP_URL }}/api/health" || echo "000")
+          echo "Health check response: $RESPONSE"
+          if [ "$RESPONSE" != "200" ]; then
+            echo "⚠️ Health check failed with status $RESPONSE"
+            exit 1
+          fi
