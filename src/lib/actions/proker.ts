@@ -9,6 +9,9 @@ import {
   memberRoleSchema,
   createNonHmifUserSchema,
   jobdeskSchema,
+  taskSchema,
+  taskChecklistItemSchema,
+  taskLinkSchema,
 } from "@/lib/validators/proker";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "./auth";
@@ -528,3 +531,245 @@ export async function deleteJobdeskAction(jobdeskId: string, divisionId: string)
     return { ok: false, error: (err as Error).message };
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// 5. MANAJEMEN TASK & TRACKING PROGRES
+// ─────────────────────────────────────────────────────────────
+
+export async function setTaskStatusAction(taskId: string, status: "belum_dimulai" | "on_progress" | "selesai", prokerId?: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    // WAJIB VIA RPC set_task_status
+    const { error } = await supabase.rpc("set_task_status", {
+      p_task: taskId,
+      p_status: status,
+    });
+
+    if (error) return { ok: false, error: error.message };
+
+    if (prokerId) {
+      revalidatePath(`/proker/${prokerId}/task`);
+      revalidatePath(`/proker/${prokerId}`);
+    }
+    revalidatePath("/tugas");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function createTaskAction(formData: FormData): Promise<ActionResult> {
+  try {
+    const assigneeIdsRaw = formData.get("assigneeIds") as string;
+    const raw = {
+      prokerId: formData.get("prokerId") as string,
+      divisionId: formData.get("divisionId") as string,
+      jobdeskId: (formData.get("jobdeskId") as string) || undefined,
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      deadline: (formData.get("deadline") as string) || undefined,
+      assigneeIds: assigneeIdsRaw ? JSON.parse(assigneeIdsRaw) : [],
+    };
+
+    const parsed = taskSchema.safeParse(raw);
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+    const session = await getSession();
+    if (!session) return { ok: false, error: "Sesi tidak valid." };
+
+    const supabase = await createClient();
+
+    // Insert task (RLS check can_manage_division)
+    const { data: task, error } = await supabase
+      .from("tasks")
+      .insert({
+        proker_id: parsed.data.prokerId,
+        division_id: parsed.data.divisionId,
+        jobdesk_id: parsed.data.jobdeskId || null,
+        title: parsed.data.title.trim(),
+        description: parsed.data.description || null,
+        deadline: parsed.data.deadline || null,
+        created_by: session.id,
+      })
+      .select("id")
+      .single();
+
+    if (error || !task) return { ok: false, error: error?.message || "Gagal membuat task" };
+
+    // Insert assignees jika ada
+    if (parsed.data.assigneeIds.length > 0) {
+      const rows = parsed.data.assigneeIds.map((userId) => ({
+        task_id: task.id,
+        user_id: userId,
+      }));
+      await supabase.from("task_assignees").insert(rows);
+    }
+
+    revalidatePath(`/proker/${parsed.data.prokerId}/task`);
+    revalidatePath(`/proker/${parsed.data.prokerId}`);
+    revalidatePath("/tugas");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function updateTaskAction(formData: FormData): Promise<ActionResult> {
+  try {
+    const assigneeIdsRaw = formData.get("assigneeIds") as string;
+    const raw = {
+      id: formData.get("id") as string,
+      prokerId: formData.get("prokerId") as string,
+      divisionId: formData.get("divisionId") as string,
+      jobdeskId: (formData.get("jobdeskId") as string) || undefined,
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || undefined,
+      deadline: (formData.get("deadline") as string) || undefined,
+      assigneeIds: assigneeIdsRaw ? JSON.parse(assigneeIdsRaw) : [],
+    };
+
+    const parsed = taskSchema.safeParse(raw);
+    if (!parsed.success || !parsed.data.id) {
+      return { ok: false, error: parsed.error?.issues[0].message || "ID Task wajib ada" };
+    }
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        division_id: parsed.data.divisionId,
+        jobdesk_id: parsed.data.jobdeskId || null,
+        title: parsed.data.title.trim(),
+        description: parsed.data.description || null,
+        deadline: parsed.data.deadline || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.data.id);
+
+    if (error) return { ok: false, error: error.message };
+
+    // Sync assignees
+    await supabase.from("task_assignees").delete().eq("task_id", parsed.data.id);
+    if (parsed.data.assigneeIds.length > 0) {
+      const rows = parsed.data.assigneeIds.map((userId) => ({
+        task_id: parsed.data.id!,
+        user_id: userId,
+      }));
+      await supabase.from("task_assignees").insert(rows);
+    }
+
+    revalidatePath(`/proker/${parsed.data.prokerId}/task`);
+    revalidatePath(`/proker/${parsed.data.prokerId}`);
+    revalidatePath("/tugas");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function deleteTaskAction(taskId: string, prokerId: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath(`/proker/${prokerId}/task`);
+    revalidatePath(`/proker/${prokerId}`);
+    revalidatePath("/tugas");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. CHECKLIST & LINK LAMPIRAN PADA TASK
+// ─────────────────────────────────────────────────────────────
+
+export async function addChecklistItemAction(taskId: string, text: string, prokerId?: string): Promise<ActionResult> {
+  try {
+    const parsed = taskChecklistItemSchema.safeParse({ taskId, text });
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+    const supabase = await createClient();
+    const { error } = await supabase.from("task_checklist_items").insert({
+      task_id: taskId,
+      text: text.trim(),
+    });
+
+    if (error) return { ok: false, error: error.message };
+    if (prokerId) revalidatePath(`/proker/${prokerId}/task`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function toggleChecklistItemAction(itemId: string, isDone: boolean, prokerId?: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("task_checklist_items")
+      .update({ is_done: isDone })
+      .eq("id", itemId);
+
+    if (error) return { ok: false, error: error.message };
+    if (prokerId) revalidatePath(`/proker/${prokerId}/task`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function deleteChecklistItemAction(itemId: string, prokerId?: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("task_checklist_items")
+      .delete()
+      .eq("id", itemId);
+
+    if (error) return { ok: false, error: error.message };
+    if (prokerId) revalidatePath(`/proker/${prokerId}/task`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function addTaskLinkAction(taskId: string, url: string, label?: string, prokerId?: string): Promise<ActionResult> {
+  try {
+    const parsed = taskLinkSchema.safeParse({ taskId, url, label });
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+    const session = await getSession();
+    const supabase = await createClient();
+    const { error } = await supabase.from("task_links").insert({
+      task_id: taskId,
+      url: parsed.data.url,
+      label: parsed.data.label || null,
+      added_by: session?.id || null,
+    });
+
+    if (error) return { ok: false, error: error.message };
+    if (prokerId) revalidatePath(`/proker/${prokerId}/task`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export async function deleteTaskLinkAction(linkId: string, prokerId?: string): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from("task_links").delete().eq("id", linkId);
+    if (error) return { ok: false, error: error.message };
+    if (prokerId) revalidatePath(`/proker/${prokerId}/task`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+

@@ -34,7 +34,37 @@ export const jobdeskSchema = z.object({
   sortOrder: z.coerce.number().int().default(0),
 });
 
+export const taskSchema = z.object({
+  id: z.string().uuid().optional(),
+  prokerId: z.string().uuid("Proker ID wajib ada"),
+  divisionId: z.string().uuid("Divisi wajib dipilih"),
+  jobdeskId: z.string().uuid().optional().nullable(),
+  title: z.string().min(1, "Judul task wajib diisi").max(200),
+  description: z.string().optional().nullable(),
+  deadline: z.string().optional().nullable(),
+  assigneeIds: z.array(z.string().uuid()).default([]),
+});
+
+export const taskChecklistItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  taskId: z.string().uuid("Task ID wajib ada"),
+  text: z.string().min(1, "Item checklist tidak boleh kosong").max(200),
+  isDone: z.boolean().default(false),
+});
+
+export const taskLinkSchema = z.object({
+  id: z.string().uuid().optional(),
+  taskId: z.string().uuid("Task ID wajib ada"),
+  checklistItemId: z.string().uuid().optional().nullable(),
+  label: z.string().max(100).optional().nullable(),
+  url: z.string().regex(/^https?:\/\//i, "URL harus diawali dengan http:// atau https://"),
+});
+
 export type DivisionInput = z.infer<typeof divisionSchema>;
 export type MemberRoleInput = z.infer<typeof memberRoleSchema>;
 export type CreateNonHmifUserInput = z.infer<typeof createNonHmifUserSchema>;
 export type JobdeskInput = z.infer<typeof jobdeskSchema>;
+export type TaskInput = z.infer<typeof taskSchema>;
+export type TaskChecklistItemInput = z.infer<typeof taskChecklistItemSchema>;
+export type TaskLinkInput = z.infer<typeof taskLinkSchema>;
+

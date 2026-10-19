@@ -11,6 +11,8 @@ export interface DashboardProker {
   periodId: string;
   periodName: string;
   roles: string[];
+  taskCompleted: number;
+  taskTotal: number;
 }
 
 export interface PeriodItem {
@@ -119,7 +121,7 @@ export function DashboardProkerTabs({
                 ))}
               </div>
               <div className="mt-3">
-                <ProgressBar value={0} total={0} />
+                <ProgressBar value={proker.taskCompleted} total={proker.taskTotal} />
               </div>
               <p className="text-xs text-ink-3 font-mono mt-2">{proker.periodName}</p>
             </Link>

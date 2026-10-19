@@ -30,6 +30,8 @@ export default async function DashboardPage() {
 
   // Deduplicate prokers (user may have multiple roles)
   const prokerMap = new Map<string, DashboardProker>();
+  const prokerIds: string[] = [];
+
   for (const pr of prokerRoles ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const proker = pr.prokers as any;
@@ -40,6 +42,7 @@ export default async function DashboardPage() {
         existing.roles.push(pr.role);
       }
     } else {
+      prokerIds.push(proker.id);
       prokerMap.set(proker.id, {
         id: proker.id,
         name: proker.name,
@@ -47,7 +50,27 @@ export default async function DashboardPage() {
         periodId: proker.period_id,
         periodName: proker.periods?.name ?? "",
         roles: [pr.role],
+        taskCompleted: 0,
+        taskTotal: 0,
       });
+    }
+  }
+
+  // Hitung progres nyata dari tabel tasks
+  if (prokerIds.length > 0) {
+    const { data: prokerTasks } = await supabase
+      .from("tasks")
+      .select("proker_id, status")
+      .in("proker_id", prokerIds);
+
+    for (const t of prokerTasks ?? []) {
+      const p = prokerMap.get(t.proker_id);
+      if (p) {
+        p.taskTotal++;
+        if (t.status === "selesai") {
+          p.taskCompleted++;
+        }
+      }
     }
   }
 
