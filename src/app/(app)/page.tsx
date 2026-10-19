@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import Link from "next/link";
-import { ProgressBar } from "@/components/ui/progress-bar";
+import { DashboardProkerTabs, type DashboardProker } from "./dashboard-proker-tabs";
 
 export const instant = false;
 
@@ -15,43 +15,43 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
+  // Fetch all periods for tabs
+  const { data: periods } = await supabase
+    .from("periods")
+    .select("id, name, is_current")
+    .order("is_current", { ascending: false })
+    .order("name", { ascending: false });
+
   // Get prokers the user is involved in
   const { data: prokerRoles } = await supabase
     .from("proker_roles")
-    .select("proker_id, role, prokers(id, name, status, start_date, end_date, periods(name))")
+    .select("proker_id, role, prokers(id, name, status, period_id, start_date, end_date, periods(name))")
     .eq("user_id", session.id);
 
   // Deduplicate prokers (user may have multiple roles)
-  const prokerMap = new Map<string, { id: string; name: string; status: string; roles: string[]; periodName: string }>();
+  const prokerMap = new Map<string, DashboardProker>();
   for (const pr of prokerRoles ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const proker = pr.prokers as any;
     if (!proker) continue;
     const existing = prokerMap.get(proker.id);
     if (existing) {
-      existing.roles.push(pr.role);
+      if (!existing.roles.includes(pr.role)) {
+        existing.roles.push(pr.role);
+      }
     } else {
       prokerMap.set(proker.id, {
         id: proker.id,
         name: proker.name,
         status: proker.status,
-        roles: [pr.role],
+        periodId: proker.period_id,
         periodName: proker.periods?.name ?? "",
+        roles: [pr.role],
       });
     }
   }
 
   const myProkers = Array.from(prokerMap.values());
-
-  const roleLabels: Record<string, string> = {
-    sc: "SC",
-    pic: "PIC",
-    ketupel: "Ketua Pelaksana",
-    sekretaris: "Sekretaris",
-    bendahara: "Bendahara",
-    koor: "Koordinator",
-    staff: "Staff",
-  };
 
   return (
     <div>
@@ -81,43 +81,16 @@ export default async function DashboardPage() {
           Proker Saya
         </h2>
 
-        {myProkers.length === 0 ? (
-          <div className="border border-line rounded-lg p-8 text-center">
-            <h3 className="text-base font-semibold text-ink">Belum ada proker</h3>
-            <p className="mt-1 text-sm text-ink-2">
-              Anda belum terdaftar di proker mana pun.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {myProkers.map((proker) => (
-              <Link
-                key={proker.id}
-                href={`/proker/${proker.id}`}
-                className="block border border-line rounded-lg p-4 hover:border-ink/20 transition-colors"
-              >
-                <h3 className="text-base font-semibold text-ink">{proker.name}</h3>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {proker.roles.map((role) => (
-                    <span key={role} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface border border-line text-ink-2">
-                      {roleLabels[role] ?? role}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <ProgressBar value={0} total={0} />
-                </div>
-                <p className="text-xs text-ink-3 font-mono mt-2">{proker.periodName}</p>
-              </Link>
-            ))}
-          </div>
-        )}
+        <DashboardProkerTabs
+          prokers={myProkers}
+          periods={periods ?? []}
+        />
       </section>
 
       {/* All prokers link for admin/bph */}
       {(session.globalRole === "admin" || session.globalRole === "bph") && (
-        <div className="mt-4">
-          <Link href="/proker/semua" className="text-sm text-ink-2 hover:text-ink underline">
+        <div className="mt-6 border-t border-line pt-4">
+          <Link href="/proker/semua" className="text-sm font-medium text-ink-2 hover:text-ink underline">
             Lihat semua proker →
           </Link>
         </div>

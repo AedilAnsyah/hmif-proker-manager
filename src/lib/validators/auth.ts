@@ -52,8 +52,23 @@ export const createProkerSchema = z.object({
   scIds: z.array(z.string().uuid()).default([]),
 });
 
+export const updateProkerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Nama proker wajib diisi").max(200),
+  periodId: z.string().uuid("Periode wajib dipilih"),
+  description: z.string().optional(),
+  status: z.enum(["planning", "active", "done"]).default("planning"),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  picId: z.string().uuid("PIC wajib dipilih"),
+  ketupelId: z.string().uuid("Ketua Pelaksana wajib dipilih"),
+  scIds: z.array(z.string().uuid()).default([]),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type CreatePeriodInput = z.infer<typeof createPeriodSchema>;
 export type CreateProkerInput = z.infer<typeof createProkerSchema>;
+export type UpdateProkerInput = z.infer<typeof updateProkerSchema>;
+

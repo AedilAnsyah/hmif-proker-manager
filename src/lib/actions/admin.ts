@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth/session";
-import { createUserSchema, createPeriodSchema, createProkerSchema } from "@/lib/validators/auth";
+import { createUserSchema, createPeriodSchema, createProkerSchema, updateProkerSchema } from "@/lib/validators/auth";
 import { normalizeUsername, generateInternalEmail } from "@/lib/auth/utils";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "./auth";
@@ -279,3 +279,93 @@ export async function createProkerAction(formData: FormData): Promise<ActionResu
   revalidatePath("/");
   return { ok: true };
 }
+
+export async function updateProkerAction(formData: FormData): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session || (session.globalRole !== "admin" && session.globalRole !== "bph")) {
+    return { ok: false, error: "Tidak berhak mengubah proker." };
+  }
+
+  const scIdsRaw = formData.get("scIds") as string;
+  const parsed = updateProkerSchema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    periodId: formData.get("periodId"),
+    description: formData.get("description") || undefined,
+    status: formData.get("status") || "planning",
+    startDate: formData.get("startDate") || undefined,
+    endDate: formData.get("endDate") || undefined,
+    picId: formData.get("picId"),
+    ketupelId: formData.get("ketupelId"),
+    scIds: scIdsRaw ? JSON.parse(scIdsRaw) : [],
+  });
+
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+
+  // Check if admin or proker manager
+  const { data: proker } = await supabase
+    .from("prokers")
+    .select("id")
+    .eq("id", parsed.data.id)
+    .single();
+
+  if (!proker) return { ok: false, error: "Proker tidak ditemukan." };
+
+  const { error: updateError } = await supabase
+    .from("prokers")
+    .update({
+      name: parsed.data.name,
+      period_id: parsed.data.periodId,
+      description: parsed.data.description || null,
+      status: parsed.data.status,
+      start_date: parsed.data.startDate || null,
+      end_date: parsed.data.endDate || null,
+    })
+    .eq("id", parsed.data.id);
+
+  if (updateError) return { ok: false, error: updateError.message };
+
+  // Re-sync core management roles: pic, ketupel, sc
+  await supabase
+    .from("proker_roles")
+    .delete()
+    .eq("proker_id", parsed.data.id)
+    .in("role", ["pic", "ketupel", "sc"]);
+
+  const roles = [
+    { proker_id: parsed.data.id, user_id: parsed.data.picId, role: "pic" as const },
+    { proker_id: parsed.data.id, user_id: parsed.data.ketupelId, role: "ketupel" as const },
+    ...parsed.data.scIds.map((scId) => ({
+      proker_id: parsed.data.id,
+      user_id: scId,
+      role: "sc" as const,
+    })),
+  ];
+
+  await supabase.from("proker_roles").insert(roles);
+
+  revalidatePath(`/admin/proker/${parsed.data.id}/edit`);
+  revalidatePath(`/proker/${parsed.data.id}`);
+  revalidatePath("/proker/semua");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteProkerAction(prokerId: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session || session.globalRole !== "admin") {
+    return { ok: false, error: "Hanya Admin yang dapat menghapus proker." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("prokers").delete().eq("id", prokerId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/proker/semua");
+  revalidatePath("/");
+  return { ok: true };
+}
+

@@ -54,7 +54,33 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // TODO (Fase 1): Check must_change_password and redirect to /ganti-password
+  // Check must_change_password and redirect to /ganti-password
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("must_change_password, is_active")
+      .eq("id", user.id)
+      .single();
+
+    if (profile && !profile.is_active) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (profile?.must_change_password) {
+      if (pathname !== "/ganti-password") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/ganti-password";
+        return NextResponse.redirect(url);
+      }
+    } else if (pathname === "/ganti-password") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  }
 
   return supabaseResponse;
 }
