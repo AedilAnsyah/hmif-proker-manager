@@ -1,21 +1,21 @@
 -- Seed data for development
 -- Target: 1 Admin, 1 BPH, beberapa anggota HMIF, 1 periode aktif, proker contoh
+-- Menggunakan RFC 4122 compliant UUID v4
 
--- Supabase extensions (for crypt / password hashing)
 create extension if not exists pgcrypto;
 
 do $$
 declare
-  admin_id uuid := 'a0000000-0000-0000-0000-000000000001'::uuid;
-  bph_id   uuid := 'a0000000-0000-0000-0000-000000000002'::uuid;
-  user1_id uuid := 'a0000000-0000-0000-0000-000000000003'::uuid;
-  user2_id uuid := 'a0000000-0000-0000-0000-000000000004'::uuid;
-  user3_id uuid := 'a0000000-0000-0000-0000-000000000005'::uuid;
-  user4_id uuid := 'a0000000-0000-0000-0000-000000000006'::uuid;
+  admin_id uuid := 'a0000000-0000-4000-8000-000000000001'::uuid;
+  bph_id   uuid := 'a0000000-0000-4000-8000-000000000002'::uuid;
+  user1_id uuid := 'a0000000-0000-4000-8000-000000000003'::uuid;
+  user2_id uuid := 'a0000000-0000-4000-8000-000000000004'::uuid;
+  user3_id uuid := 'a0000000-0000-4000-8000-000000000005'::uuid;
+  user4_id uuid := 'a0000000-0000-4000-8000-000000000006'::uuid;
 
-  period_id uuid := 'b0000000-0000-0000-0000-000000000001'::uuid;
-  proker1_id uuid := 'c0000000-0000-0000-0000-000000000001'::uuid;
-  div_acara_id uuid := 'd0000000-0000-0000-0000-000000000001'::uuid;
+  period_id uuid := 'b0000000-0000-4000-8000-000000000001'::uuid;
+  proker1_id uuid := 'c0000000-0000-4000-8000-000000000001'::uuid;
+  div_acara_id uuid := 'd0000000-0000-4000-8000-000000000001'::uuid;
 begin
   -- 1. AUTH USERS (email format: {nim}@hmif.local, initial password: {nim})
   insert into auth.users (
